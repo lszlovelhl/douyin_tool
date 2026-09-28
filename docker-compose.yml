@@ -1,0 +1,14 @@
+# 抖音数据监控工具 - 一键容器编排
+# 用法: docker compose up -d  → 打开 http://localhost:8888
+services:
+  douyin-tool:
+    build: .
+    container_name: douyin-tool
+    ports:
+      - "8888:8888"
+    environment:
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./data:/app/data          # 监控数据 / SQLite / 配置
+      - ./cookies:/app/cookies    # 抖音登录态（先在本机登录后拷入）
+    restart: unless-stopped

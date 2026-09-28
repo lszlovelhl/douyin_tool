@@ -1,0 +1,22 @@
+{
+  "interval_minutes": 60,
+  "like_threshold": 100,
+  "sec_uids": ["填写抖音用户 sec_uid"],
+  "max_videos": 20,
+  "scroll_times": 3,
+  "get_comments": true,
+  "max_comments": 20,
+  "comment_keywords": ["合作", "商务"],
+  "enabled": true,
+  "lark_enabled": false,
+  "lark_app_id": "cli_xxxx",
+  "lark_app_secret": "填写飞书应用密钥",
+  "lark_spreadsheet_token": "填写飞书电子表格 token",
+  "lark_sheet_id": "自动获取或留空",
+  "schedule_mode": "interval",
+  "schedule_times": ["09:00", "18:00"],
+  "cron_expression": "",
+  "min_days": 1,
+  "lark_webhook": "填写飞书机器人 webhook",
+  "comment_check_count": 50
+}

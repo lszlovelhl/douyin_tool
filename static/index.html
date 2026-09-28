@@ -1,0 +1,2028 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>抖音数据监控</title>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    background: #f5f5f7;
+    color: #1d1d1f;
+    min-height: 100vh;
+  }
+
+  /* 顶部导航 */
+  .topbar {
+    background: #fff;
+    border-bottom: 1px solid #e5e5e8;
+    padding: 0 32px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 700;
+    color: #1d1d1f;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #ff0050, #ff4081);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 16px; font-weight: 800;
+  }
+  .topbar-right { display: flex; align-items: center; gap: 16px; }
+  .user-info { display: flex; align-items: center; gap: 10px; }
+  .user-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: #e5e5e8; object-fit: cover;
+    border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  }
+  .user-name { font-size: 14px; font-weight: 500; color: #1d1d1f; }
+  .login-badge {
+    font-size: 12px; padding: 3px 10px; border-radius: 20px;
+    background: #e8f5e9; color: #2e7d32; font-weight: 500;
+  }
+  .login-badge.offline { background: #fff3e0; color: #e65100; }
+
+  /* Tab 导航 */
+  .tabs {
+    background: #fff;
+    border-bottom: 1px solid #e5e5e8;
+    padding: 0 32px;
+    display: flex;
+    gap: 4px;
+  }
+  .tab {
+    padding: 14px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #86868b;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .tab:hover { color: #1d1d1f; }
+  .tab.active { color: #ff0050; border-bottom-color: #ff0050; }
+
+  /* 主内容 */
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px 32px; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* 卡片 */
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    margin-bottom: 20px;
+  }
+  .card-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: #1d1d1f;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .card-title .badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #f0f0f2;
+    color: #86868b;
+    font-weight: 500;
+  }
+
+  /* 概览卡片网格 */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .stat-label { font-size: 13px; color: #86868b; margin-bottom: 8px; }
+  .stat-value { font-size: 28px; font-weight: 700; color: #1d1d1f; }
+  .stat-value.accent { color: #ff0050; }
+  .stat-value.success { color: #2e7d32; }
+  .stat-value.warning { color: #ed6c02; }
+  .stat-sub { font-size: 12px; color: #a1a1a6; margin-top: 4px; }
+
+  /* 图表 */
+  .chart-container { width: 100%; height: 320px; }
+
+  /* 表单 */
+  .form-group { margin-bottom: 16px; }
+  .form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #1d1d1f;
+    margin-bottom: 6px;
+  }
+  .form-label .hint { color: #a1a1a6; font-weight: 400; font-size: 12px; }
+  .form-input, .form-textarea, .form-select {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1px solid #d2d2d7;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #1d1d1f;
+    background: #fff;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  .form-input:focus, .form-textarea:focus, .form-select:focus {
+    border-color: #ff0050;
+    box-shadow: 0 0 0 3px rgba(255,0,80,0.1);
+  }
+  .form-textarea { resize: vertical; min-height: 80px; font-family: inherit; }
+  .form-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .form-row-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: #1d1d1f;
+    cursor: pointer;
+  }
+  .checkbox-row input { width: 18px; height: 18px; accent-color: #ff0050; }
+
+  /* 按钮 */
+  .btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-primary {
+    background: #ff0050;
+    color: #fff;
+  }
+  .btn-primary:hover { background: #e60048; }
+  .btn-primary:disabled { background: #ffb3c6; cursor: not-allowed; }
+  .btn-secondary {
+    background: #f0f0f2;
+    color: #1d1d1f;
+  }
+  .btn-secondary:hover { background: #e5e5e8; }
+  .btn-success { background: #2e7d32; color: #fff; }
+  .btn-success:hover { background: #1b5e20; }
+  .btn-danger { background: #c62828; color: #fff; }
+  .btn-danger:hover { background: #b71c1c; }
+  .btn-sm { padding: 6px 14px; font-size: 13px; }
+
+  /* 表格 */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .data-table th {
+    text-align: left;
+    padding: 10px 12px;
+    background: #fafafa;
+    font-weight: 600;
+    color: #86868b;
+    border-bottom: 1px solid #e5e5e8;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .data-table td {
+    padding: 12px;
+    border-bottom: 1px solid #f0f0f2;
+    color: #1d1d1f;
+  }
+  .data-table tr:hover { background: #fafafa; }
+  .data-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .data-table .center { text-align: center; }
+
+  /* 标签 */
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .tag-video { background: #e3f2fd; color: #1565c0; }
+  .tag-note { background: #f3e5f5; color: #7b1fa2; }
+  .tag-alert { background: #ffebee; color: #c62828; }
+  .tag-comment { background: #fff3e0; color: #e65100; }
+  .tag-new { background: #e8f5e9; color: #2e7d32; }
+
+  /* 告警项 */
+  .alert-item {
+    padding: 14px 16px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border-left: 3px solid;
+    background: #fafafa;
+  }
+  .alert-item.like { border-left-color: #ff0050; background: #fff5f7; }
+  .alert-item.comment { border-left-color: #ed6c02; background: #fff8f0; }
+  .alert-item.new { border-left-color: #2e7d32; background: #f5faf6; }
+  .alert-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .alert-title { font-size: 14px; font-weight: 600; color: #1d1d1f; }
+  .alert-time { font-size: 12px; color: #a1a1a6; }
+  .alert-detail { font-size: 13px; color: #6e6e73; line-height: 1.6; }
+  .alert-reply {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: #fff;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #1d1d1f;
+    border: 1px dashed #d2d2d7;
+  }
+  .alert-reply .label { color: #86868b; font-size: 12px; }
+
+  /* 状态指示器 */
+  .status-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+  .status-dot.running { background: #2e7d32; animation: pulse 2s infinite; }
+  .status-dot.stopped { background: #c62828; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* 空状态 */
+  .empty-state {
+    text-align: center;
+    padding: 48px 24px;
+    color: #a1a1a6;
+  }
+  .empty-state .icon { font-size: 48px; margin-bottom: 12px; opacity: 0.5; }
+  .empty-state .text { font-size: 14px; }
+
+  /* 加载 */
+  .loading { display: inline-block; width: 16px; height: 16px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* 结果区域 */
+  .result-user {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: #fafafa;
+    border-radius: 8px;
+    margin-bottom: 16px;
+  }
+  .result-user img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; }
+  .result-user-info .name { font-size: 16px; font-weight: 600; }
+  .result-user-info .meta { font-size: 13px; color: #86868b; margin-top: 4px; }
+  .result-stats {
+    display: flex;
+    gap: 24px;
+    margin-left: auto;
+  }
+  .result-stat { text-align: center; }
+  .result-stat .v { font-size: 18px; font-weight: 700; color: #ff0050; }
+  .result-stat .l { font-size: 11px; color: #a1a1a6; }
+
+  /* 配置分区 */
+  .config-section {
+    border: 1px solid #e5e5e8;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .config-section-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1d1d1f;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .config-section-title .dot { width: 4px; height: 16px; background: #ff0050; border-radius: 2px; }
+
+  /* 增量颜色 */
+  .delta-up { color: #2e7d32; font-weight: 600; }
+  .delta-down { color: #c62828; font-weight: 600; }
+
+  /* 快捷操作 */
+  .quick-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* 响应式 */
+  @media (max-width: 768px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .form-row, .form-row-2 { grid-template-columns: 1fr; }
+    .container { padding: 16px; }
+  }
+
+  /* ===== 暗色模式 ===== */
+  body.dark {
+    background: #0d1117;
+    color: #e6edf3;
+  }
+  body.dark .topbar { background: #161b22; border-bottom-color: #30363d; }
+  body.dark .logo span, body.dark .topbar-right { color: #e6edf3; }
+  body.dark .card { background: #161b22; border-color: #30363d; box-shadow: none; }
+  body.dark .card-title { color: #e6edf3; }
+  body.dark .stat-card { background: #0d1117; border-color: #30363d; }
+  body.dark .stat-value { color: #e6edf3; }
+  body.dark .stat-label { color: #8b949e; }
+  body.dark .form-input, body.dark .form-textarea, body.dark .form-select {
+    background: #0d1117; border-color: #30363d; color: #e6edf3;
+  }
+  body.dark .form-label { color: #8b949e; }
+  body.dark .btn-primary { background: #238636; border-color: #238636; }
+  body.dark .btn-primary:hover { background: #2ea043; }
+  body.dark .btn-secondary { background: #21262d; border-color: #30363d; color: #e6edf3; }
+  body.dark .btn-secondary:hover { background: #30363d; }
+  body.dark .btn-danger { background: #da3633; border-color: #da3633; }
+  body.dark table { color: #e6edf3; }
+  body.dark th { background: #0d1117; color: #8b949e; border-color: #30363d; }
+  body.dark td { border-color: #30363d; }
+  body.dark tr:hover { background: #1c2128; }
+  body.dark .alert-item { background: #0d1117; border-color: #30363d; }
+  body.dark .alert-type { color: #f0883e; }
+  body.dark .alert-time { color: #8b949e; }
+  body.dark .tab-btn { color: #8b949e; }
+  body.dark .tab-btn.active { color: #e6edf3; border-bottom-color: #238636; }
+  body.dark .tabs { background: #161b22; border-bottom-color: #30363d; }
+  body.dark .tab { color: #8b949e; }
+  body.dark .tab:hover { color: #e6edf3; }
+  body.dark .tab.active { color: #3fb950; border-bottom-color: #3fb950; }
+  body.dark .container { background: #0d1117; }
+  body.dark .card-title { color: #e6edf3; }
+  body.dark .stat-sub { color: #8b949e; }
+  body.dark .form-textarea { background: #0d1117; border-color: #30363d; color: #e6edf3; }
+  body.dark .checkbox-row { color: #e6edf3; }
+  body.dark .time-point-tag { background: #21262d; color: #e6edf3; border-color: #30363d; }
+  body.dark .time-point-remove { color: #8b949e; }
+  body.dark .preset-btn { background: #21262d; color: #8b949e; border-color: #30363d; }
+  body.dark .preset-btn:hover { background: #30363d; color: #e6edf3; }
+  body.dark .alert-detail { color: #8b949e; }
+  body.dark .alert-reply { background: #1c2128; color: #e6edf3; }
+  body.dark .alert-reply .label { color: #3fb950; }
+  body.dark .result-user-info .meta { color: #8b949e; }
+  body.dark .result-stats { color: #e6edf3; }
+  body.dark .video-item { background: #0d1117; border-color: #30363d; }
+  body.dark .video-title { color: #e6edf3; }
+  body.dark .video-meta { color: #8b949e; }
+  body.dark .comment-item { background: #0d1117; border-color: #30363d; }
+  body.dark .comment-author { color: #e6edf3; }
+  body.dark .comment-text { color: #8b949e; }
+  body.dark .reply-suggestion { background: #1c2128; color: #e6edf3; }
+  body.dark .save-status { color: #8b949e; }
+  body.dark .login-badge { background: #1a3a2a; color: #3fb950; }
+  body.dark .user-name { color: #e6edf3; }
+  body.dark .section-desc { color: #8b949e; }
+  body.dark .config-section { border-color: #30363d; }
+  body.dark .monitor-status-badge { background: #1a3a2a; color: #3fb950; }
+  body.dark .monitor-status-badge.stopped { background: #3a1a1a; color: #f85149; }
+  body.dark .next-run-info { color: #8b949e; }
+  body.dark .scan-progress-box { background: #1c2128; }
+  body.dark .progress-text { color: #e6edf3; }
+  body.dark #scanProgressBar { border-top-color: #30363d !important; }
+  body.dark #scanProgressText { color: #e6edf3; }
+  body.dark #scanProgressCount { color: #8b949e; }
+  body.dark #scanProgressDetail { color: #8b949e; }
+  body.dark .modal-content { background: #161b22; }
+  body.dark .modal-title { color: #e6edf3; }
+  body.dark .modal-close { color: #8b949e; }
+  body.dark .video-detail-item { border-bottom-color: #21262d; }
+  body.dark .video-detail-title { color: #e6edf3; }
+  body.dark .video-detail-likes { color: #f85149; }
+  body.dark .unread { background: #1c2128 !important; }
+  body.dark .alert-item { background: #0d1117; }
+  body.dark .alert-item.like { border-left-color: #3fb950; }
+  body.dark .alert-item.comment { border-left-color: #58a6ff; }
+  body.dark .alert-item.new { border-left-color: #f0883e; }
+  body.dark .alert-title { color: #e6edf3; }
+  body.dark .alert-time { color: #8b949e; }
+  body.dark .data-table { color: #e6edf3; }
+  body.dark .data-table th { background: #0d1117; color: #8b949e; }
+  body.dark .data-table td { border-color: #21262d; color: #e6edf3 !important; }
+  body.dark .data-table tr:hover { background: #1c2128; }
+  body.dark .num { color: #e6edf3; }
+  body.dark .center { color: #e6edf3; }
+  body.dark .hint { color: #8b949e; }
+  body.dark .section-title { color: #e6edf3; }
+  body.dark .empty-state { color: #8b949e; }
+  body.dark .badge { background: #21262d; color: #8b949e; }
+  body.dark .badge-success { background: #1a3a2a; color: #3fb950; }
+  body.dark .badge-warning { background: #3a2a1a; color: #d29922; }
+  body.dark .badge-danger { background: #3a1a1a; color: #f85149; }
+  body.dark .delta-up { color: #3fb950; }
+  body.dark .delta-down { color: #f85149; }
+  body.dark .loading { border-color: #30363d; border-top-color: #238636; }
+  body.dark .modal-content { background: #161b22; border-color: #30363d; }
+  body.dark .modal-header { border-color: #30363d; }
+  body.dark .modal-title { color: #e6edf3; }
+  body.dark .progress-bar { background: #21262d; }
+  body.dark .progress-fill { background: #238636; }
+  body.dark .unread { background: #1c2128 !important; border-left-color: #f0883e !important; }
+  body.dark .theme-toggle { background: #21262d; color: #e6edf3; }
+  .theme-toggle {
+    padding: 6px 12px; border-radius: 6px; border: 1px solid #e5e5e7;
+    background: #fff; cursor: pointer; font-size: 14px;
+  }
+  .theme-toggle:hover { background: #f5f5f7; }
+  body.dark .theme-toggle:hover { background: #30363d; }
+
+  /* 详情弹窗 */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5); display: none; align-items: center;
+    justify-content: center; z-index: 1000;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-content {
+    background: #fff; border-radius: 12px; width: 90%; max-width: 700px;
+    max-height: 80vh; overflow-y: auto; padding: 24px;
+  }
+  .modal-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid #e5e5e7;
+  }
+  .modal-title { font-size: 18px; font-weight: 600; }
+  .modal-close {
+    background: none; border: none; font-size: 24px; cursor: pointer;
+    color: #86868b; line-height: 1;
+  }
+  .video-detail-item {
+    padding: 12px; border-bottom: 1px solid #f0f0f0; display: flex;
+    justify-content: space-between; align-items: center;
+  }
+  .video-detail-item:last-child { border-bottom: none; }
+  .video-detail-title { flex: 1; margin-right: 16px; font-size: 14px; }
+  .video-detail-likes { font-weight: 600; color: #ff2d55; white-space: nowrap; }
+
+  /* 数据表格 */
+  .data-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+  }
+  .data-table th {
+    background: #f5f5f7; padding: 10px 12px; text-align: left;
+    font-weight: 600; color: #86868b; font-size: 12px;
+    border-bottom: 1px solid #e5e5e7; white-space: nowrap;
+  }
+  .data-table td {
+    padding: 10px 12px; border-bottom: 1px solid #f0f0f0;
+  }
+  .data-table tr:hover td { background: #fafafa; }
+  .data-table tr:last-child td { border-bottom: none; }
+  body.dark .data-table th { background: #1c2128; color: #8b949e; border-bottom-color: #30363d; }
+  body.dark .data-table td { border-bottom-color: #21262d; }
+  body.dark .data-table tr:hover td { background: #161b22; }
+
+  /* 单页仪表盘布局 */
+  .action-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 14px 16px; background: #fff; border-radius: 10px;
+    margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  body.dark .action-bar { background: #161b22; }
+  .action-bar-right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .dashboard-layout {
+    display: grid; grid-template-columns: 300px 1fr; gap: 16px;
+  }
+  @media (max-width: 900px) {
+    .dashboard-layout { grid-template-columns: 1fr; }
+  }
+  .config-panel { position: sticky; top: 16px; align-self: start; }
+  .data-area { min-width: 0; }
+
+  /* 热门视频卡片 - 大卡片，突出视频内容 */
+  .hot-video-card {
+    flex-shrink: 0; width: 200px; border-radius: 12px; overflow: hidden;
+    background: var(--card-bg); cursor: pointer; transition: all 0.2s;
+    border: 1px solid var(--border-color);
+  }
+  .hot-video-card:hover { transform: translateY(-3px); box-shadow: 0 6px 16px rgba(0,0,0,0.12); }
+  body.dark .hot-video-card { background: #1c2128; border-color: #30363d; }
+  .hot-video-cover { width: 100%; height: 130px; object-fit: cover; background: #ddd; display: block; }
+  .hot-video-info { padding: 10px; }
+  .hot-video-title {
+    font-size: 13px; font-weight: 600; margin-bottom: 6px; line-height: 1.4;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .hot-video-meta { font-size: 11px; color: #86868b; display: flex; justify-content: space-between; align-items: center; }
+  .hot-video-delta { color: #ff2d55; font-weight: 700; font-size: 13px; }
+  .hot-video-blogger { font-size: 11px; color: #86868b; margin-top: 4px; }
+  body.dark .hot-video-title { color: #e6edf3; }
+  body.dark .hot-video-meta { color: #8b949e; }
+  body.dark .hot-video-delta { color: #f85149; }
+
+  /* 视频缩略图 */
+  .video-thumb {
+    width: 44px; height: 44px; object-fit: cover; border-radius: 6px;
+    background: #ddd; cursor: pointer;
+  }
+  .video-title-link {
+    color: #007aff; cursor: pointer; text-decoration: none;
+  }
+  .video-title-link:hover { text-decoration: underline; }
+
+  /* 折叠面板 */
+  .collapsible-content { transition: max-height 0.3s ease; overflow: hidden; }
+
+  /* 暗色模式适配 */
+  body.dark .stat-card { background: #161b22 !important; }
+  body.dark .stat-label { color: #8b949e !important; }
+  body.dark .stat-sub { color: #8b949e !important; }
+  body.dark .stat-value { color: #f0f6fc !important; }
+  body.dark .stat-value.success { color: #3fb950 !important; }
+  body.dark #scanProgressBar { background: #1c2128 !important; }
+
+  /* 扫描进度 */
+  .scan-progress-box {
+    margin-top: 12px; padding: 16px; background: #f0f7ff; border-radius: 8px;
+  }
+  body.dark .scan-progress-box { background: #1c2128; }
+  .progress-bar {
+    height: 8px; background: #e5e5e7; border-radius: 4px; overflow: hidden;
+    margin: 12px 0;
+  }
+  .progress-fill {
+    height: 100%; background: #007aff; border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+  .progress-text { font-size: 13px; color: #1d1d1f; margin-bottom: 8px; }
+  body.dark .progress-text { color: #e6edf3; }
+
+  /* 告警未读样式 */
+  .alert-item.unread { border-left: 3px solid #ff9500; background: #fff8f0; }
+
+  /* 评论管理 */
+  .comment-filter-btn.active { background: #007aff !important; color: #fff !important; border-color: #007aff !important; }
+  body.dark .comment-filter-btn.active { background: #238636 !important; border-color: #238636 !important; }
+  body.dark .comment-card { background: #0d1117; border-color: #30363d !important; }
+  body.dark .comment-card .form-textarea { background: #161b22; border-color: #30363d; color: #e6edf3; }
+
+  /* 热门视频卡片文字 */
+  body.dark .hot-video-title { color: #e6edf3; }
+  body.dark .hot-video-meta { color: #8b949e; }
+  body.dark .hot-video-delta { color: #f85149; }
+
+  /* 配置面板 */
+  body.dark .config-section { border-color: #30363d; }
+  body.dark .config-section-title { color: #e6edf3; }
+  body.dark .config-section-title .dot { background: #3fb950; }
+
+  /* 操作栏状态文字 */
+  body.dark .action-bar span { color: #8b949e !important; }
+
+  /* 视频历史表格 */
+  body.dark .video-title-link { color: #58a6ff; }
+  body.dark .video-title-link:hover { color: #79b8ff; }
+  body.dark .data-table td { color: #e6edf3 !important; }
+
+  /* 评论卡片 */
+  body.dark .comment-card .comment-author { color: #e6edf3; }
+  body.dark .comment-card .comment-text { color: #8b949e; }
+  body.dark .comment-card .comment-meta { color: #8b949e; }
+
+  /* 账号表格 */
+  body.dark #accountTableBody td { color: #e6edf3 !important; }
+
+  /* 弹窗内容 */
+  body.dark #detailModalBody { color: #e6edf3; }
+  body.dark #detailModalBody div { color: #e6edf3; }
+
+  /* 扫描进度条 */
+  body.dark #scanProgressText { color: #e6edf3; }
+  body.dark #scanProgressDetail { color: #8b949e; }
+
+  /* 登录状态 */
+  body.dark .login-badge.offline { background: #3a1a1a; color: #f85149; }
+  body.dark .user-name { color: #e6edf3; }
+</style>
+</head>
+<body>
+
+<!-- 顶部导航 -->
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon">抖</div>
+    <span>抖音数据监控</span>
+  </div>
+  <div class="topbar-right">
+    <button class="theme-toggle" onclick="toggleTheme()" id="themeToggle">🌙 暗色</button>
+    <div id="loginStatus" class="user-info" style="display:none;">
+      <img id="userAvatar" class="user-avatar" src="" alt="">
+      <div>
+        <div class="user-name" id="userName">未登录</div>
+      </div>
+      <span class="login-badge" id="loginBadge">已登录</span>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="checkLogin()">刷新状态</button>
+  </div>
+</div>
+
+<!-- 概览卡片 -->
+<div class="container">
+
+  <!-- ==================== 仪表盘 ==================== -->
+  <!-- 操作栏 -->
+  <div class="action-bar">
+    <button class="btn btn-primary" onclick="forceScan(this)">⚡ 立即扫描</button>
+    <button class="btn btn-success" id="startMonitorBtn" onclick="startMonitor()">▶ 启动监控</button>
+    <button class="btn btn-secondary" onclick="exportHistory()">📥 导出CSV</button>
+    <div class="action-bar-right">
+      <span id="monitorStatusText" style="font-size:13px;color:#86868b;">状态：未运行</span>
+      <span id="monitorNextRun" style="font-size:13px;color:#86868b;"></span>
+    </div>
+  </div>
+
+  <!-- 扫描进度条 -->
+  <div id="scanProgressBar" style="display:none; margin-bottom:16px; padding:16px; background:#f0f7ff; border-radius:8px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <span id="scanProgressText" style="font-size:13px; font-weight:500;">⏳ 正在扫描...</span>
+      <span id="scanProgressCount" style="font-size:12px; color:#86868b;">0/0</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="scanProgressFill" style="width:0%"></div></div>
+    <div id="scanProgressDetail" style="font-size:12px; color:#86868b; margin-top:6px;"></div>
+  </div>
+
+  <!-- 概览卡片 -->
+  <div class="stats-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
+    <div class="stat-card" style="background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+      <div class="stat-label" style="font-size:12px;color:#86868b;margin-bottom:6px;">监控账号</div>
+      <div class="stat-value" id="statAccounts" style="font-size:24px;font-weight:600;">0</div>
+      <div class="stat-sub" id="statAccountsSub" style="font-size:11px;color:#86868b;margin-top:4px;">未启用</div>
+    </div>
+    <div class="stat-card" style="background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+      <div class="stat-label" style="font-size:12px;color:#86868b;margin-bottom:6px;">监控状态</div>
+      <div class="stat-value" id="statMonitorStatus" style="font-size:24px;font-weight:600;">未运行</div>
+      <div class="stat-sub" id="statMonitorSub" style="font-size:11px;color:#86868b;margin-top:4px;">点击启动监控</div>
+    </div>
+    <div class="stat-card" style="background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+      <div class="stat-label" style="font-size:12px;color:#86868b;margin-bottom:6px;">今日扫描</div>
+      <div class="stat-value" id="statScans" style="font-size:24px;font-weight:600;">0</div>
+      <div class="stat-sub" id="statTotalScans" style="font-size:11px;color:#86868b;margin-top:4px;">累计 0 次</div>
+    </div>
+    <div class="stat-card" style="background:#fff;border-radius:10px;padding:16px;box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+      <div class="stat-label" style="font-size:12px;color:#86868b;margin-bottom:6px;">未读告警</div>
+      <div class="stat-value" id="statAlerts" style="font-size:24px;font-weight:600;color:#ff9500;">0</div>
+      <div class="stat-sub" style="font-size:11px;color:#86868b;margin-top:4px;">点击查看详情</div>
+    </div>
+  </div>
+
+  <!-- 主体布局 -->
+  <div class="dashboard-layout">
+    <!-- 左侧配置面板 -->
+    <div class="config-panel">
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-title" style="cursor:pointer;" onclick="toggleSection('configSection')">
+          ⚙️ 监控配置 <span id="configSectionArrow" style="float:right;">▼</span>
+        </div>
+        <div id="configSection">
+          <div class="config-section">
+            <div class="config-section-title"><span class="dot"></span>监控账号</div>
+            <div class="form-group">
+              <label class="form-label">抖音主页链接或 sec_uid <span class="hint">（每行一个）</span></label>
+              <textarea class="form-textarea" id="mSecUids" placeholder="https://www.douyin.com/user/MS4wLjABAAAA..." style="height:80px;" oninput="renderAccountTable()"></textarea>
+            </div>
+            <div id="accountTableWrap" style="margin-top:8px;">
+              <div style="font-size:12px; font-weight:600; margin-bottom:6px; color:#86868b;">已添加 <span id="accountCount" style="color:#007aff;">0</span> 个</div>
+              <div style="overflow-x:auto; max-height:180px; overflow-y:auto;">
+                <table class="data-table" id="accountTable" style="font-size:11px;">
+                  <thead><tr><th style="width:30px;text-align:center;">#</th><th>链接/ID</th><th style="width:50px;text-align:center;">操作</th></tr></thead>
+                  <tbody id="accountTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-section">
+            <div class="config-section-title"><span class="dot"></span>定时规则</div>
+            <div class="form-group">
+              <div style="display:flex; gap:12px; margin-bottom:8px;">
+                <label class="checkbox-row" style="font-size:12px;"><input type="radio" name="scheduleMode" value="interval" checked onchange="toggleScheduleMode()"> 按间隔</label>
+                <label class="checkbox-row" style="font-size:12px;"><input type="radio" name="scheduleMode" value="fixed" onchange="toggleScheduleMode()"> 指定时间</label>
+              </div>
+              <div id="intervalMode">
+                <div class="form-row" style="gap:8px;">
+                  <div class="form-group" style="flex:1;"><label class="form-label" style="font-size:11px;">间隔(分钟)</label><input type="number" class="form-input" id="mInterval" value="30" min="1" style="font-size:12px;"></div>
+                  <div class="form-group" style="flex:1;"><label class="form-label" style="font-size:11px;">告警阈值</label><input type="number" class="form-input" id="mThreshold" value="300" min="0" style="font-size:12px;"></div>
+                </div>
+              </div>
+              <div id="fixedMode" style="display:none;">
+                <div class="form-group"><label class="form-label" style="font-size:11px;">告警阈值</label><input type="number" class="form-input" id="mThresholdFixed" value="300" min="0" style="font-size:12px;width:100%;"></div>
+                <div class="form-group"><label class="form-label" style="font-size:11px;">时间点</label><div id="timePointsList" style="display:flex; flex-direction:column; gap:4px; margin-bottom:6px;"></div><button type="button" class="btn btn-secondary btn-sm" style="font-size:11px;padding:2px 8px;" onclick="addTimePoint()">+ 添加</button></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-section">
+            <div class="config-section-title"><span class="dot"></span>采集参数</div>
+            <div class="form-row" style="gap:8px;">
+              <div class="form-group" style="flex:1;"><label class="form-label" style="font-size:11px;">最大视频数</label><input type="number" class="form-input" id="mMaxVideos" value="20" style="font-size:12px;"></div>
+              <div class="form-group" style="flex:1;"><label class="form-label" style="font-size:11px;">最近N天</label><input type="number" class="form-input" id="mMinDays" value="0" style="font-size:12px;"></div>
+            </div>
+            <div class="form-row" style="gap:8px;">
+              <div class="form-group" style="flex:1;"><label class="form-label" style="font-size:11px;">滚动次数</label><input type="number" class="form-input" id="mScroll" value="5" style="font-size:12px;"></div>
+              <div class="form-group" style="flex:1;"><label class="form-label" style="font-size:11px;">评论检查数</label><input type="number" class="form-input" id="mCommentCount" value="2" style="font-size:12px;"></div>
+            </div>
+            <label class="checkbox-row" style="font-size:12px;margin-top:4px;"><input type="checkbox" id="mGetComments" checked> 采集评论并识别关键词</label>
+          </div>
+
+          <div class="config-section">
+            <div class="config-section-title"><span class="dot"></span>评论关键词</div>
+            <div class="form-group"><input type="text" class="form-input" id="mKeywords" value="好听,什么歌,求歌名,BGM,歌名,这是什么歌" style="font-size:12px;" placeholder="逗号分隔"></div>
+          </div>
+
+          <div class="config-section">
+            <div class="config-section-title"><span class="dot"></span>飞书集成</div>
+            <label class="checkbox-row" style="font-size:12px;margin-bottom:8px;"><input type="checkbox" id="mLarkEnabled"> 启用飞书表格同步</label>
+            <div class="form-group"><label class="form-label" style="font-size:11px;">App ID</label><input type="text" class="form-input" id="mLarkAppId" style="font-size:12px;"></div>
+            <div class="form-group"><label class="form-label" style="font-size:11px;">App Secret</label><input type="password" class="form-input" id="mLarkAppSecret" style="font-size:12px;"></div>
+            <div class="form-group"><label class="form-label" style="font-size:11px;">表格 Token</label><input type="text" class="form-input" id="mLarkSpreadsheet" style="font-size:12px;"></div>
+            <div class="form-group"><label class="form-label" style="font-size:11px;">机器人 Webhook</label><input type="text" class="form-input" id="mLarkWebhook" style="font-size:12px;" placeholder="可选"></div>
+            <button class="btn btn-secondary btn-sm" style="font-size:11px;padding:4px 10px;" onclick="testLark()">测试连接</button>
+          </div>
+
+          <div style="margin-top:12px; text-align:center;">
+            <button class="btn btn-primary btn-sm" style="width:100%;" onclick="saveMonitorConfig()">💾 保存配置</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧数据区 -->
+    <div class="data-area">
+      <!-- 热门视频排行榜 -->
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-title">🔥 热门视频 <span class="hint" style="font-size:11px;font-weight:normal;">按点赞增量排序</span></div>
+        <div id="hotVideosList" style="display:flex; gap:10px; overflow-x:auto; padding-bottom:8px;">
+          <div class="empty-state" style="width:100%;"><div class="icon">📹</div><div class="text">暂无数据</div></div>
+        </div>
+      </div>
+
+      <!-- 视频扫描历史表格 -->
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-title" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>📹 视频扫描历史</span>
+          <select id="historyFilter" onchange="loadVideoHistory()" style="font-size:12px;padding:4px 8px;border-radius:6px;border:1px solid #e5e5e7;">
+            <option value="">全部账号</option>
+          </select>
+        </div>
+        <div style="overflow-x:auto; max-height:500px; overflow-y:auto;">
+          <table class="data-table" id="videoHistoryTable">
+            <thead><tr>
+              <th style="width:50px;">封面</th>
+              <th>视频标题</th>
+              <th style="width:80px;">账号</th>
+              <th style="width:80px;text-align:right;">当前点赞</th>
+              <th style="width:80px;text-align:right;">上次点赞</th>
+              <th style="width:70px;text-align:right;">增量</th>
+              <th style="width:130px;">扫描时间</th>
+            </tr></thead>
+            <tbody id="videoHistoryBody">
+              <tr><td colspan="7" style="text-align:center;color:#86868b;padding:30px;">加载中...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 告警列表 -->
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-title" style="cursor:pointer;" onclick="toggleSection('alertsSection')">
+          🔔 告警列表 <span id="alertsSectionArrow" style="float:right;">▼</span>
+        </div>
+        <div id="alertsSection">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <span style="font-size:12px;color:#86868b;">显示最近50条</span>
+            <button class="btn btn-secondary btn-sm" style="font-size:11px;padding:2px 8px;" onclick="markAllAlertsRead()">全部已读</button>
+          </div>
+          <div id="alertsList" style="max-height:300px;overflow-y:auto;">
+            <div class="empty-state"><div class="icon">🔔</div><div class="text">暂无告警</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 评论管理 -->
+      <div class="card">
+        <div class="card-title" style="cursor:pointer;" onclick="toggleSection('commentsSection')">
+          💬 评论关键词命中 <span id="commentsSectionArrow" style="float:right;">▼</span>
+        </div>
+        <div id="commentsSection">
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <button class="btn btn-secondary btn-sm comment-filter-btn active" style="font-size:11px;" onclick="filterComments('all', this)">全部</button>
+            <button class="btn btn-secondary btn-sm comment-filter-btn" style="font-size:11px;" onclick="filterComments('pending', this)">待回复</button>
+            <button class="btn btn-secondary btn-sm comment-filter-btn" style="font-size:11px;" onclick="filterComments('replied', this)">已回复</button>
+          </div>
+          <div id="commentsList" style="max-height:300px;overflow-y:auto;">
+            <div class="empty-state"><div class="icon">💬</div><div class="text">暂无评论关键词命中</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let trendChart = null;
+let videoTrendChart = null;
+
+// ==================== 折叠面板 ====================
+function toggleSection(id) {
+  const el = document.getElementById(id);
+  const arrow = document.getElementById(id + 'Arrow');
+  if (el.style.display === 'none') {
+    el.style.display = '';
+    if (arrow) arrow.textContent = '▼';
+  } else {
+    el.style.display = 'none';
+    if (arrow) arrow.textContent = '▶';
+  }
+}
+
+// ==================== 视频扫描历史 ====================
+async function loadVideoHistory() {
+  try {
+    const secUid = document.getElementById('historyFilter').value || '';
+    const resp = await fetch('/api/monitor/video-history?limit=200' + (secUid ? '&sec_uid=' + encodeURIComponent(secUid) : ''));
+    const videos = await resp.json();
+    const tbody = document.getElementById('videoHistoryBody');
+    if (!videos.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#86868b;padding:30px;">暂无扫描记录</td></tr>';
+      return;
+    }
+    tbody.innerHTML = videos.map(v => {
+      const delta = v.delta_from_last !== undefined ? v.delta_from_last : null;
+      const deltaHtml = delta !== null
+        ? `<span style="color:${delta > 0 ? '#ff2d55' : delta < 0 ? '#34c759' : '#86868b'};font-weight:600;">${delta > 0 ? '+' + delta : delta}</span>`
+        : '<span style="color:#86868b;">-</span>';
+      const cover = v.cover_url
+        ? `<img src="${v.cover_url}" class="video-thumb" onclick="showVideoTrend('${v.aweme_id}', '${v.title.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" title="点击查看趋势" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+           <div style="width:44px;height:44px;background:#e5e5e7;border-radius:6px;display:none;align-items:center;justify-content:center;color:#86868b;font-size:18px;cursor:pointer;" onclick="showVideoTrend('${v.aweme_id}', '${v.title.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')">📹</div>`
+        : `<div style="width:44px;height:44px;background:#e5e5e7;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#86868b;font-size:18px;cursor:pointer;" onclick="showVideoTrend('${v.aweme_id}', '${v.title.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" title="点击查看趋势">📹</div>`;
+      const title = v.title || '(无标题)';
+      return `<tr>
+        <td>${cover}</td>
+        <td><a class="video-title-link" href="https://www.douyin.com/video/${v.aweme_id}" target="_blank" title="${title}">${title.substring(0, 40)}${title.length > 40 ? '...' : ''}</a></td>
+        <td style="font-size:12px;">${v.nickname || '-'}</td>
+        <td style="text-align:right;font-weight:600;">${v.digg_count.toLocaleString()}</td>
+        <td style="text-align:right;color:#86868b;">${v.last_likes !== undefined ? v.last_likes.toLocaleString() : '-'}</td>
+        <td style="text-align:right;">${deltaHtml}</td>
+        <td style="font-size:11px;color:#86868b;">${v.datetime || ''}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) { console.error(e); }
+}
+
+// ==================== 热门视频排行榜 ====================
+async function loadHotVideos() {
+  try {
+    const resp = await fetch('/api/monitor/hot-videos?limit=10');
+    const videos = await resp.json();
+    const el = document.getElementById('hotVideosList');
+    if (!videos.length) {
+      el.innerHTML = '<div class="empty-state" style="width:100%;"><div class="icon">📹</div><div class="text">暂无数据，需至少2次扫描</div></div>';
+      return;
+    }
+    el.innerHTML = videos.map((v, i) => {
+      const newBadge = v.is_new ? '<span style="position:absolute;top:4px;left:4px;background:#ff9500;color:#fff;font-size:10px;padding:1px 6px;border-radius:4px;font-weight:600;">新</span>' : '';
+      const rankBadge = v.is_new ? '' : (i < 3 ? ['🥇','🥈','🥉'][i] : `#${i+1}`);
+      const cover = v.cover_url
+        ? `<img src="${v.cover_url}" class="hot-video-cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+           <div class="hot-video-cover" style="display:none;align-items:center;justify-content:center;color:#86868b;font-size:24px;">📹</div>`
+        : '<div class="hot-video-cover" style="display:flex;align-items:center;justify-content:center;color:#86868b;font-size:24px;">📹</div>';
+      return `<div class="hot-video-card" style="position:relative;" onclick="showVideoTrend('${v.aweme_id}', '${v.title.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" title="点击查看点赞趋势">
+        ${newBadge}
+        ${cover}
+        <div class="hot-video-info">
+          <div class="hot-video-title">${rankBadge} ${(v.title || '无标题')}</div>
+          <div class="hot-video-blogger">👤 ${v.nickname}</div>
+          <div class="hot-video-meta" style="margin-top:6px;">
+            <span>❤️${v.current_likes > 9999 ? (v.current_likes/10000).toFixed(1) + 'w' : v.current_likes}</span>
+            ${v.is_new ? '<span style="color:#86868b;">首次出现</span>' : `<span class="hot-video-delta">+${v.delta}</span>`}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { console.error(e); }
+}
+
+// ==================== 视频趋势图弹窗 ====================
+async function showVideoTrend(aweme_id, title) {
+  const modal = document.getElementById('detailModal');
+  document.getElementById('detailModalTitle').textContent = `📈 ${title.substring(0, 30)} - 点赞趋势`;
+  document.getElementById('detailModalBody').innerHTML = '<div style="text-align:center;padding:40px;color:#86868b;">加载中...</div>';
+  modal.classList.add('show');
+
+  try {
+    const resp = await fetch('/api/monitor/video-trend/' + aweme_id);
+    const result = await resp.json();
+    const trend = result.trend || [];
+    if (!trend.length) {
+      document.getElementById('detailModalBody').innerHTML = '<div class="empty-state"><div class="icon">📊</div><div class="text">暂无趋势数据</div></div>';
+      return;
+    }
+    document.getElementById('detailModalBody').innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;">
+        <div><div style="color:#86868b;font-size:12px;">当前点赞</div><div style="font-size:20px;font-weight:600;color:#ff2d55;">${trend[trend.length-1].digg_count.toLocaleString()}</div></div>
+        <div><div style="color:#86868b;font-size:12px;">扫描次数</div><div style="font-size:20px;font-weight:600;">${trend.length}</div></div>
+        <div><div style="color:#86868b;font-size:12px;">总增长</div><div style="font-size:20px;font-weight:600;color:#34c759;">+${trend[trend.length-1].digg_count - trend[0].digg_count}</div></div>
+      </div>
+      <div id="videoTrendChart" style="height:300px;"></div>
+      <div style="margin-top:12px;text-align:center;">
+        <a href="https://www.douyin.com/video/${aweme_id}" target="_blank" class="btn btn-primary btn-sm">🔗 跳转到原视频</a>
+      </div>
+    `;
+    // 渲染图表
+    setTimeout(() => {
+      const chartDom = document.getElementById('videoTrendChart');
+      if (videoTrendChart) videoTrendChart.dispose();
+      videoTrendChart = echarts.init(chartDom);
+      videoTrendChart.setOption({
+        tooltip: { trigger: 'axis' },
+        grid: { left: 60, right: 20, top: 20, bottom: 40 },
+        xAxis: { type: 'category', data: trend.map(t => (t.time || '').substring(5, 16)), axisLabel: { fontSize: 10 } },
+        yAxis: { type: 'value', axisLabel: { fontSize: 10 } },
+        series: [{
+          name: '点赞数', type: 'line', smooth: true,
+          data: trend.map(t => t.digg_count),
+          areaStyle: { opacity: 0.15 },
+          itemStyle: { color: '#ff2d55' },
+          lineStyle: { color: '#ff2d55', width: 2 },
+        }]
+      });
+    }, 100);
+  } catch(e) {
+    document.getElementById('detailModalBody').innerHTML = '<div class="empty-state">加载失败</div>';
+  }
+}
+
+// ==================== 登录状态 ====================
+async function checkLogin() {
+  try {
+    const resp = await fetch('/api/auth/profile');
+    const data = await resp.json();
+    const el = document.getElementById('loginStatus');
+    if (data && data.nickname) {
+      el.style.display = 'flex';
+      document.getElementById('userName').textContent = data.nickname;
+      document.getElementById('userAvatar').src = data.avatar || '';
+      document.getElementById('loginBadge').textContent = '已登录';
+      document.getElementById('loginBadge').className = 'login-badge';
+    } else {
+      el.style.display = 'flex';
+      document.getElementById('userName').textContent = '未登录';
+      document.getElementById('userAvatar').src = '';
+      document.getElementById('loginBadge').textContent = '未登录';
+      document.getElementById('loginBadge').className = 'login-badge offline';
+    }
+  } catch(e) { console.error(e); }
+}
+
+// ==================== 仪表盘 ====================
+async function loadDashboard() {
+  try {
+    // 配置
+    const cfgResp = await fetch('/api/monitor/config');
+    const cfg = await cfgResp.json();
+    document.getElementById('statAccounts').textContent = (cfg.sec_uids || []).length;
+    document.getElementById('statAccountsSub').textContent = cfg.enabled ? '监控中' : '未启用';
+
+    // 监控状态
+    const statusResp = await fetch('/api/monitor/status');
+    const status = await statusResp.json();
+    if (status.running) {
+      document.getElementById('statMonitorStatus').textContent = '运行中';
+      document.getElementById('statMonitorStatus').className = 'stat-value success';
+      document.getElementById('statMonitorSub').textContent = '下次: ' + (status.next_run_time || '—');
+      document.getElementById('monitorStatusText').textContent = '状态：运行中';
+      document.getElementById('monitorNextRun').textContent = '下次: ' + (status.next_run_time || '—');
+      document.getElementById('startMonitorBtn').textContent = '■ 停止监控';
+      document.getElementById('startMonitorBtn').className = 'btn btn-danger';
+      document.getElementById('startMonitorBtn').onclick = stopMonitor;
+    } else {
+      document.getElementById('statMonitorStatus').textContent = '未运行';
+      document.getElementById('statMonitorStatus').className = 'stat-value';
+      document.getElementById('statMonitorSub').textContent = '点击启动监控';
+      document.getElementById('monitorStatusText').textContent = '状态：未运行';
+      document.getElementById('monitorNextRun').textContent = '';
+      document.getElementById('startMonitorBtn').textContent = '▶ 启动监控';
+      document.getElementById('startMonitorBtn').className = 'btn btn-success';
+      document.getElementById('startMonitorBtn').onclick = startMonitor;
+    }
+
+    // 历史记录统计
+    const histResp = await fetch('/api/monitor/history?limit=200');
+    const history = await histResp.json();
+    const today = new Date().toDateString();
+    const todayScans = history.filter(h => new Date(h.datetime).toDateString() === today).length;
+    document.getElementById('statScans').textContent = todayScans;
+    document.getElementById('statTotalScans').textContent = history.length;
+
+    // 告警统计
+    const alertResp = await fetch('/api/monitor/alerts?limit=50');
+    const alerts = await alertResp.json();
+    const unreadAlerts = alerts.filter(a => !a.read);
+    document.getElementById('statAlerts').textContent = unreadAlerts.length;
+
+    // 视频历史筛选器
+    const seen = new Set();
+    const filter = document.getElementById('historyFilter');
+    const currentVal = filter.value;
+    filter.innerHTML = '<option value="">全部账号</option>';
+    history.forEach(h => {
+      if (!seen.has(h.sec_uid)) {
+        seen.add(h.sec_uid);
+        const opt = document.createElement('option');
+        opt.value = h.sec_uid;
+        opt.textContent = h.nickname || h.sec_uid.slice(0, 15);
+        filter.appendChild(opt);
+      }
+    });
+    filter.value = currentVal;
+
+    // 加载视频历史和热门视频
+    loadVideoHistory();
+    loadHotVideos();
+    loadAlerts();
+    loadComments();
+  } catch(e) { console.error(e); }
+}
+
+function renderDashboardAlerts(alerts) {
+  const el = document.getElementById('dashboardAlerts');
+  if (!alerts.length) {
+    el.innerHTML = '<div class="empty-state"><div class="icon">🔔</div><div class="text">暂无告警</div></div>';
+    return;
+  }
+  el.innerHTML = alerts.map(a => {
+    const alertType = a.alert_type || a.type;
+    const type = (alertType === 'like_threshold' || alertType === 'video_like_threshold') ? 'like' : alertType === 'comment_keyword' ? 'comment' : 'new';
+    const icon = type === 'like' ? '📈' : type === 'comment' ? '💬' : '🆕';
+    const d = a.detail || {};
+    let detailHtml = `<div class="alert-detail">账号：${a.nickname || a.sec_uid.slice(0,15)}</div>`;
+    if (alertType === 'video_like_threshold' && d.video_title) {
+      detailHtml += `<div class="alert-detail">视频：《${d.video_title.substring(0, 30)}》</div>`;
+      detailHtml += `<div class="alert-detail">当前点赞：${d.current_likes}，上次点赞：${d.last_likes}，增量：+${d.delta_from_last}</div>`;
+    }
+    return `<div class="alert-item ${type}">
+      <div class="alert-header">
+        <span class="alert-title">${icon} ${a.message}</span>
+        <span class="alert-time">${a.datetime}</span>
+      </div>
+      ${detailHtml}
+    </div>`;
+  }).join('');
+}
+
+function renderTrendChart() {
+  const secUid = document.getElementById('trendFilter').value;
+  const badge = document.getElementById('trendAccountBadge');
+  badge.textContent = secUid ? document.getElementById('trendFilter').selectedOptions[0].textContent : '全部账号';
+
+  fetch('/api/monitor/history?limit=200' + (secUid ? '&sec_uid=' + encodeURIComponent(secUid) : ''))
+    .then(r => r.json())
+    .then(history => {
+      if (!trendChart) {
+        trendChart = echarts.init(document.getElementById('trendChart'));
+      }
+      if (!history.length) {
+        trendChart.clear();
+        trendChart.setOption({ title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#a1a1a6', fontSize: 14 } } });
+        return;
+      }
+
+      // 按账号分组
+      const byUser = {};
+      history.slice().reverse().forEach(h => {
+        const name = h.nickname || h.sec_uid.slice(0, 10);
+        if (!byUser[name]) byUser[name] = [];
+        byUser[name].push([h.datetime, h.total_likes]);
+      });
+
+      const series = Object.entries(byUser).map(([name, data]) => ({
+        name, type: 'line', data, smooth: true,
+        symbol: 'circle', symbolSize: 6,
+        lineStyle: { width: 2 },
+      }));
+
+      trendChart.setOption({
+        tooltip: { trigger: 'axis' },
+        legend: { data: Object.keys(byUser), bottom: 0 },
+        grid: { left: 60, right: 20, top: 20, bottom: 40 },
+        xAxis: { type: 'category', axisLabel: { fontSize: 11, color: '#86868b' } },
+        yAxis: { type: 'value', axisLabel: { fontSize: 11, color: '#86868b' }, splitLine: { lineStyle: { color: '#f0f0f2' } } },
+        color: ['#ff0050', '#1565c0', '#2e7d32', '#ed6c02', '#7b1fa2'],
+        series,
+      }, true);
+    });
+}
+
+// ==================== 单次采集 ====================
+async function startCrawl() {
+  const raw = document.getElementById('crawlSecUids').value.trim();
+  if (!raw) { alert('请输入抖音主页链接或 sec_uid'); return; }
+
+  const btn = document.getElementById('crawlBtn');
+  const status = document.getElementById('crawlStatus');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading"></span> 采集中...';
+  status.textContent = '正在采集，请稍候（约20-40秒）...';
+
+  try {
+    const resp = await fetch('/api/crawl', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sec_uids: raw.split('\n').map(s => s.trim()).filter(s => s),
+        max_videos: parseInt(document.getElementById('crawlMaxVideos').value),
+        min_days: parseInt(document.getElementById('crawlMinDays').value),
+        get_comments: document.getElementById('crawlGetComments').checked,
+        max_comments: 20,
+        scroll_times: parseInt(document.getElementById('crawlScroll').value),
+      })
+    });
+    const data = await resp.json();
+    if (data.success) {
+      status.textContent = `采集完成，耗时 ${data.elapsed_seconds} 秒，共 ${data.accounts} 个账号`;
+      renderCrawlResults(data.results);
+    } else {
+      status.textContent = '采集失败: ' + (data.detail || '');
+    }
+  } catch(e) {
+    status.textContent = '采集失败: ' + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '开始采集';
+  }
+}
+
+function renderCrawlResults(results) {
+  const el = document.getElementById('crawlResults');
+  el.innerHTML = results.map(r => {
+    if (r.error) {
+      return `<div class="card"><div style="color:#c62828;">采集失败: ${r.error}</div></div>`;
+    }
+    const u = r.user || {};
+    const videosHtml = r.videos.map(v => {
+      const keywordHits = (v.comments || []).filter(c => c.matched_keyword);
+      return `<tr>
+        <td><span class="tag ${v.type === 'video' ? 'tag-video' : 'tag-note'}">${v.type === 'video' ? '视频' : '图文'}</span></td>
+        <td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${v.title || ''}">${v.title || '(无标题)'}</td>
+        <td class="center">${v.create_time_text || v.create_days_ago != null ? (v.create_days_ago + '天前') : '—'}</td>
+        <td class="num">${v.digg_count_text}</td>
+        <td class="center">${(v.comments || []).length}</td>
+        <td class="center">${keywordHits.length ? '<span class="tag tag-comment">' + keywordHits.length + '条命中</span>' : '—'}</td>
+      </tr>`;
+    }).join('');
+
+    const commentsDetail = r.videos.filter(v => (v.comments || []).some(c => c.matched_keyword)).map(v => {
+      const hits = v.comments.filter(c => c.matched_keyword);
+      return `<div style="margin-top:12px; padding:12px; background:#fff8f0; border-radius:8px;">
+        <div style="font-weight:600; font-size:13px; margin-bottom:8px;">💬 《${v.title || '(无标题)'}》评论关键词命中</div>
+        ${hits.map(c => `<div style="font-size:13px; margin-bottom:8px; padding:8px; background:#fff; border-radius:6px;">
+          <div><strong>${c.author || '匿名'}</strong>: ${c.text}</div>
+          <div style="color:#ed6c02; margin-top:4px;">命中: ${c.matched_keyword}</div>
+          <div style="color:#2e7d32; margin-top:4px;">拟回复: ${c.suggested_reply}</div>
+        </div>`).join('')}
+      </div>`;
+    }).join('');
+
+    return `<div class="card">
+      <div class="result-user">
+        <img src="${u.avatar || ''}" alt="" onerror="this.style.display='none'">
+        <div class="result-user-info">
+          <div class="name">${u.nickname || '未知'}</div>
+          <div class="meta">抖音号: ${u.douyin_id || '—'} | ${u.location || ''} | ${u.signature || ''}</div>
+        </div>
+        <div class="result-stats">
+          <div class="result-stat"><div class="v">${u.follower_count || '0'}</div><div class="l">粉丝</div></div>
+          <div class="result-stat"><div class="v">${u.total_favorited || '0'}</div><div class="l">获赞</div></div>
+          <div class="result-stat"><div class="v">${r.video_count}</div><div class="l">视频</div></div>
+          <div class="result-stat"><div class="v">${r.total_likes.toLocaleString()}</div><div class="l">总点赞</div></div>
+        </div>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>类型</th><th>标题</th><th class="center">发布时间</th><th class="num">点赞</th><th class="center">评论数</th><th class="center">关键词</th></tr></thead>
+        <tbody>${videosHtml || '<tr><td colspan="6">无视频</td></tr>'}</tbody>
+      </table>
+      ${commentsDetail}
+    </div>`;
+  }).join('');
+}
+
+// ==================== 定时规则 ====================
+function toggleScheduleMode() {
+  const mode = document.querySelector('input[name="scheduleMode"]:checked').value;
+  document.getElementById('intervalMode').style.display = mode === 'interval' ? 'block' : 'none';
+  document.getElementById('fixedMode').style.display = mode === 'fixed' ? 'block' : 'none';
+  // 同步阈值
+  if (mode === 'fixed') {
+    document.getElementById('mThresholdFixed').value = document.getElementById('mThreshold').value;
+  } else {
+    document.getElementById('mThreshold').value = document.getElementById('mThresholdFixed').value;
+  }
+}
+
+function renderTimePoints(times) {
+  const list = document.getElementById('timePointsList');
+  if (!times.length) {
+    list.innerHTML = '<div style="font-size:13px; color:#a1a1a6; padding:8px 0;">暂无时间点，点击下方按钮添加</div>';
+    return;
+  }
+  list.innerHTML = times.map((t, i) => {
+    const parts = t.split(':');
+    const hour = parts[0] || '09';
+    const minute = parts[1] || '00';
+    return `
+    <div class="time-point-row" style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+      <input type="number" class="time-hour form-input" style="width:70px; text-align:center;" min="0" max="23" value="${parseInt(hour)}" data-idx="${i}">
+      <span style="font-size:18px; font-weight:600; color:#86868b;">:</span>
+      <input type="number" class="time-minute form-input" style="width:70px; text-align:center;" min="0" max="59" value="${parseInt(minute)}" data-idx="${i}">
+      <span class="time-hint" style="font-size:13px; color:#86868b; margin-left:8px;">每天 ${hour}:${minute} 自动扫描</span>
+      <button type="button" class="btn btn-danger btn-sm" style="padding:4px 12px; margin-left:auto;" onclick="removeTimePoint(${i})">删除</button>
+    </div>`;
+  }).join('');
+
+  // 绑定输入事件
+  list.querySelectorAll('.time-hour, .time-minute').forEach(input => {
+    input.addEventListener('input', function() {
+      const row = this.closest('.time-point-row');
+      const h = row.querySelector('.time-hour').value.padStart(2, '0');
+      const m = row.querySelector('.time-minute').value.padStart(2, '0');
+      row.querySelector('.time-hint').textContent = `每天 ${h}:${m} 自动扫描`;
+      if (typeof scheduleAutoSave === 'function') scheduleAutoSave();
+    });
+  });
+}
+
+function addTimePoint() {
+  const times = getTimePoints();
+  times.push('12:00');
+  renderTimePoints(times);
+  if (typeof scheduleAutoSave === 'function') scheduleAutoSave();
+}
+
+function removeTimePoint(idx) {
+  const times = getTimePoints();
+  times.splice(idx, 1);
+  renderTimePoints(times);
+  if (typeof scheduleAutoSave === 'function') scheduleAutoSave();
+}
+
+function getTimePoints() {
+  const rows = document.querySelectorAll('#timePointsList .time-point-row');
+  return Array.from(rows).map(row => {
+    let h = parseInt(row.querySelector('.time-hour').value) || 0;
+    let m = parseInt(row.querySelector('.time-minute').value) || 0;
+    h = Math.max(0, Math.min(23, h));
+    m = Math.max(0, Math.min(59, m));
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+  });
+}
+
+function presetTimes(type) {
+  let times = [];
+  if (type === 'morning') times = ['09:00', '12:00', '18:00'];
+  if (type === 'workhour') times = ['09:00', '10:00', '11:00', '12:00', '14:00', '15:00', '16:00', '17:00', '18:00'];
+  if (type === 'hourly') times = ['00:00', '01:00', '02:00', '03:00', '04:00', '05:00', '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00', '23:00'];
+  renderTimePoints(times);
+}
+
+// ==================== 账号表格 ====================
+function renderAccountTable() {
+  const textarea = document.getElementById('mSecUids');
+  const tbody = document.getElementById('accountTableBody');
+  if (!textarea || !tbody) return;
+  const accounts = textarea.value.split('\n').map(s => s.trim()).filter(s => s);
+  document.getElementById('accountCount').textContent = accounts.length;
+  if (accounts.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#86868b;padding:20px;">暂无账号，请在上方粘贴链接</td></tr>';
+    return;
+  }
+  tbody.innerHTML = accounts.map((acc, i) => {
+    const display = acc.length > 60 ? acc.substring(0, 57) + '...' : acc;
+    return `<tr>
+      <td style="text-align:center;color:#86868b;">${i+1}</td>
+      <td style="font-size:12px;word-break:break-all;" title="${acc}">${display}</td>
+      <td style="text-align:center;">
+        <button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:11px;" onclick="removeAccount(${i})">删除</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+function removeAccount(index) {
+  const textarea = document.getElementById('mSecUids');
+  const accounts = textarea.value.split('\n').map(s => s.trim()).filter(s => s);
+  accounts.splice(index, 1);
+  textarea.value = accounts.join('\n');
+  renderAccountTable();
+  saveConfigSilent();
+}
+
+// ==================== 定时监控 ====================
+async function loadMonitorConfig() {
+  try {
+    const resp = await fetch('/api/monitor/config');
+    const cfg = await resp.json();
+    document.getElementById('mSecUids').value = (cfg.sec_uids || []).join('\n');
+    renderAccountTable();
+    document.getElementById('mInterval').value = cfg.interval_minutes || 30;
+    document.getElementById('mThreshold').value = cfg.like_threshold || 300;
+    document.getElementById('mThresholdFixed').value = cfg.like_threshold || 300;
+    // 定时模式
+    const mode = cfg.schedule_mode || 'interval';
+    document.querySelector(`input[name="scheduleMode"][value="${mode}"]`).checked = true;
+    toggleScheduleMode();
+    renderTimePoints(cfg.schedule_times || ['09:00', '12:00', '18:00']);
+    document.getElementById('mMaxVideos').value = cfg.max_videos || 20;
+    document.getElementById('mMinDays').value = cfg.min_days || 0;
+    document.getElementById('mScroll').value = cfg.scroll_times || 5;
+    document.getElementById('mCommentCount').value = cfg.comment_check_count || 2;
+    document.getElementById('mKeywords').value = (cfg.comment_keywords || []).join(',');
+    document.getElementById('mGetComments').checked = cfg.get_comments !== false;
+    document.getElementById('mLarkEnabled').checked = cfg.lark_enabled === true;
+    document.getElementById('mLarkAppId').value = cfg.lark_app_id || '';
+    document.getElementById('mLarkAppSecret').value = cfg.lark_app_secret || '';
+    document.getElementById('mLarkSpreadsheet').value = cfg.lark_spreadsheet_token || '';
+    document.getElementById('mLarkWebhook').value = cfg.lark_webhook || '';
+    updateMonitorStatus();
+  } catch(e) { console.error(e); }
+}
+
+async function updateMonitorStatus() {
+  try {
+    const resp = await fetch('/api/monitor/status');
+    const status = await resp.json();
+    const text = document.getElementById('monitorStatusText');
+    const next = document.getElementById('monitorNextRun');
+    const btn = document.getElementById('startMonitorBtn');
+    if (status.running) {
+      if (text) text.textContent = '状态：运行中';
+      if (next) next.textContent = '下次: ' + (status.next_run_time || '—');
+      if (btn) {
+        btn.textContent = '■ 停止监控';
+        btn.className = 'btn btn-danger';
+        btn.onclick = stopMonitor;
+      }
+    } else {
+      if (text) text.textContent = '状态：未运行';
+      if (next) next.textContent = '';
+      if (btn) {
+        btn.textContent = '▶ 启动监控';
+        btn.className = 'btn btn-success';
+        btn.onclick = startMonitor;
+      }
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function startMonitor() {
+  const config = collectMonitorConfig();
+  config.enabled = true;
+  if (!config.sec_uids.length) { alert('请输入至少一个监控账号'); return; }
+  try {
+    const resp = await fetch('/api/monitor/start', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config)
+    });
+    const data = await resp.json();
+    if (data.success) {
+      const mode = config.schedule_mode;
+      const msg = mode === 'fixed'
+        ? '监控已启动！每天 ' + config.schedule_times.join('、') + ' 自动扫描'
+        : '监控已启动！间隔 ' + config.interval_minutes + ' 分钟';
+      alert(msg);
+      updateMonitorStatus();
+      loadDashboard();
+    } else {
+      alert('启动失败: ' + (data.detail || ''));
+    }
+  } catch(e) { alert('启动失败: ' + e.message); }
+}
+
+async function saveAndStart() {
+  startMonitor();
+}
+
+function collectMonitorConfig() {
+  const mode = document.querySelector('input[name="scheduleMode"]:checked').value;
+  const threshold = mode === 'fixed'
+    ? parseInt(document.getElementById('mThresholdFixed').value)
+    : parseInt(document.getElementById('mThreshold').value);
+  // 从当前监控状态读取 enabled，避免保存时把运行中的监控停掉
+  const isRunning = document.getElementById('monitorStartBtn').style.display === 'none';
+  return {
+    sec_uids: document.getElementById('mSecUids').value.split('\n').map(s => s.trim()).filter(s => s),
+    interval_minutes: parseInt(document.getElementById('mInterval').value),
+    schedule_mode: mode,
+    schedule_times: getTimePoints(),
+    like_threshold: threshold,
+    max_videos: parseInt(document.getElementById('mMaxVideos').value),
+    min_days: parseInt(document.getElementById('mMinDays').value),
+    scroll_times: parseInt(document.getElementById('mScroll').value),
+    get_comments: document.getElementById('mGetComments').checked,
+    max_comments: 20,
+    comment_check_count: parseInt(document.getElementById('mCommentCount').value) || 2,
+    comment_keywords: document.getElementById('mKeywords').value.split(/[,，]/).map(s => s.trim()).filter(s => s),
+    enabled: isRunning,  // 保持当前运行状态
+    lark_enabled: document.getElementById('mLarkEnabled').checked,
+    lark_app_id: document.getElementById('mLarkAppId').value.trim(),
+    lark_app_secret: document.getElementById('mLarkAppSecret').value.trim(),
+    lark_spreadsheet_token: document.getElementById('mLarkSpreadsheet').value.trim(),
+    lark_sheet_id: '0',
+    lark_webhook: document.getElementById('mLarkWebhook').value.trim(),
+  };
+}
+
+async function stopMonitor() {
+  try {
+    await fetch('/api/monitor/stop', { method: 'POST' });
+    updateMonitorStatus();
+  } catch(e) { console.error(e); }
+}
+
+async function forceScan(btn) {
+  // 立即更新按钮状态
+  if (!btn) btn = event.target;
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loading"></span> 扫描中...';
+
+  // 显示进度条容器
+  const progressBar = document.getElementById('scanProgressBar');
+  const progressText = document.getElementById('scanProgressText');
+  const progressCount = document.getElementById('scanProgressCount');
+  const progressFill = document.getElementById('scanProgressFill');
+  const progressDetail = document.getElementById('scanProgressDetail');
+  progressBar.style.display = 'block';
+  progressText.textContent = '⏳ 正在准备扫描...';
+  progressCount.textContent = '0/0';
+  progressFill.style.width = '0%';
+  progressDetail.textContent = '';
+
+  try {
+    // 先保存配置
+    const config = collectMonitorConfig();
+    await fetch('/api/monitor/config', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config)
+    });
+
+    const accountCount = config.sec_uids.length;
+    const commentCount = config.get_comments ? (config.comment_check_count || 2) : 0;
+    const estTime = accountCount * (commentCount > 0 ? 20 : 8);
+    progressText.textContent = `⏳ 正在扫描 ${accountCount} 个账号...`;
+    progressCount.textContent = `0/${accountCount}`;
+    progressDetail.textContent = `评论检查：${commentCount > 0 ? '前' + commentCount + '条视频' : '已关闭'} | 预计约 ${estTime} 秒`;
+    startProgressPolling();
+
+    const resp = await fetch('/api/monitor/scan-now', { method: 'POST' });
+    const data = await resp.json();
+    stopProgressPolling();
+    if (data.success) {
+      progressText.textContent = '✅ 扫描完成！';
+      progressFill.style.width = '100%';
+      progressDetail.textContent = '正在刷新数据...';
+      setTimeout(() => {
+        loadVideoHistory();
+        loadHotVideos();
+        loadAlerts();
+        loadDashboard();
+        progressBar.style.display = 'none';
+      }, 1500);
+      alert('扫描完成！');
+    } else {
+      progressText.textContent = '❌ 扫描失败';
+      progressDetail.textContent = data.detail || '未知错误';
+      alert('扫描失败: ' + (data.detail || '未知错误'));
+    }
+  } catch(e) {
+    progressText.textContent = '❌ 扫描失败';
+    progressDetail.textContent = e.message;
+    alert('扫描失败: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
+}
+
+async function testLark() {
+  // 先保存配置
+  const config = collectMonitorConfig();
+  await fetch('/api/monitor/config', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(config)
+  });
+  try {
+    const resp = await fetch('/api/lark/test', { method: 'POST' });
+    const data = await resp.json();
+    if (data.success) {
+      alert('✓ ' + data.message);
+    } else {
+      alert('✗ ' + data.message);
+    }
+  } catch(e) { alert('测试失败: ' + e.message); }
+}
+
+// ==================== 历史记录 ====================
+async function loadHistory() {
+  try {
+    const filter = document.getElementById('historyFilter').value;
+    const url = filter ? `/api/monitor/history?sec_uid=${encodeURIComponent(filter)}&limit=50` : '/api/monitor/history?limit=50';
+    const resp = await fetch(url);
+    const history = await resp.json();
+
+    // 更新筛选下拉框
+    if (!filter) {
+      const allResp = await fetch('/api/monitor/history?limit=200');
+      const allHistory = await allResp.json();
+      const seen = new Set();
+      const select = document.getElementById('historyFilter');
+      const currentVal = select.value;
+      select.innerHTML = '<option value="">全部账号</option>';
+      allHistory.forEach(h => {
+        if (!seen.has(h.sec_uid)) {
+          seen.add(h.sec_uid);
+          const opt = document.createElement('option');
+          opt.value = h.sec_uid;
+          opt.textContent = h.nickname || h.sec_uid.slice(0, 15);
+          select.appendChild(opt);
+        }
+      });
+      select.value = currentVal;
+    }
+
+    const el = document.getElementById('historyBody');
+    if (!history.length) {
+      el.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="text">暂无记录</div></div></td></tr>';
+      return;
+    }
+    // 计算增量
+    const byUser = {};
+    history.slice().reverse().forEach(h => {
+      if (!byUser[h.sec_uid]) byUser[h.sec_uid] = [];
+      byUser[h.sec_uid].push(h);
+    });
+    const enriched = [];
+    Object.values(byUser).forEach(list => {
+      const first = list[0];
+      list.forEach((h, i) => {
+        const deltaLast = i > 0 ? h.total_likes - list[i-1].total_likes : 0;
+        const deltaFirst = h.total_likes - first.total_likes;
+        enriched.push({...h, deltaLast, deltaFirst});
+      });
+    });
+    enriched.sort((a,b) => b.timestamp - a.timestamp);
+
+    el.innerHTML = enriched.slice(0, 50).map(h => `
+      <tr>
+        <td style="font-size:13px; color:#86868b;">${h.datetime}</td>
+        <td style="font-weight:500;">${h.nickname || h.sec_uid.slice(0,12)}</td>
+        <td class="center">${h.video_count}</td>
+        <td class="num" style="font-weight:600;">${h.total_likes.toLocaleString()}</td>
+        <td class="num ${h.deltaLast > 0 ? 'delta-up' : h.deltaLast < 0 ? 'delta-down' : ''}">${h.deltaLast > 0 ? '+' : ''}${h.deltaLast}</td>
+        <td class="num ${h.deltaFirst > 0 ? 'delta-up' : h.deltaFirst < 0 ? 'delta-down' : ''}">${h.deltaFirst > 0 ? '+' : ''}${h.deltaFirst}</td>
+        <td class="center"><button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:12px;" onclick='showScanDetail(${JSON.stringify(h).replace(/'/g, "&#39;")})'>详情</button></td>
+      </tr>
+    `).join('');
+  } catch(e) { console.error(e); }
+}
+
+// ==================== 告警列表 ====================
+async function loadAlerts() {
+  try {
+    const resp = await fetch('/api/monitor/alerts?limit=50');
+    const alerts = await resp.json();
+    const el = document.getElementById('alertsList');
+    if (!alerts.length) {
+      el.innerHTML = '<div class="empty-state"><div class="icon">🔔</div><div class="text">暂无告警</div></div>';
+      return;
+    }
+    el.innerHTML = alerts.map(a => {
+      const alertType = a.alert_type || a.type;  // 兼容两种字段名
+      const type = (alertType === 'like_threshold' || alertType === 'video_like_threshold') ? 'like' : alertType === 'comment_keyword' ? 'comment' : 'new';
+      const icon = type === 'like' ? '📈' : type === 'comment' ? '💬' : '🆕';
+      const d = a.detail || {};
+      const isUnread = !a.read;
+      let detailHtml = `<div class="alert-detail">账号：${a.nickname || a.sec_uid.slice(0,15)}</div>`;
+      if (type === 'like') {
+        if (alertType === 'video_like_threshold') {
+          // 单个视频点赞增量告警
+          detailHtml += `<div class="alert-detail">视频：《${d.video_title || ''}》</div>`;
+          detailHtml += `<div class="alert-detail">当前点赞：${d.current_likes?.toLocaleString()} | 上次点赞：${d.last_likes?.toLocaleString()} | 相邻增量：+${d.delta_from_last} | 阈值：${d.threshold}</div>`;
+        } else {
+          // 兼容旧的账号总获赞告警
+          detailHtml += `<div class="alert-detail">当前总点赞：${d.total_likes?.toLocaleString()} | 累计增量：+${d.delta_from_first} | 相邻增量：+${d.delta_from_last} | 阈值：${d.threshold}</div>`;
+        }
+      }
+      if (type === 'comment') {
+        detailHtml += `<div class="alert-detail">视频：《${d.video_title || ''}》</div>`;
+        detailHtml += `<div class="alert-detail">评论人：${d.comment_author || '匿名'} | 评论：${d.comment_text || ''}</div>`;
+        if (d.suggested_reply) {
+          detailHtml += `<div class="alert-reply"><span class="label">拟回复：</span>${d.suggested_reply}</div>`;
+        }
+      }
+      if (type === 'new' && d.new_videos) {
+        detailHtml += `<div class="alert-detail">新内容：${d.new_videos.map(v => v.title).join('、')}</div>`;
+      }
+      const readBtn = isUnread ? `<button class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:12px;" onclick="markAlertRead(${a.id}, this)">标记已读</button>` : '';
+      return `<div class="alert-item ${type} ${isUnread ? 'unread' : ''}">
+        <div class="alert-header">
+          <span class="alert-title">${icon} ${a.message} ${isUnread ? '<span style="color:#ff9500;font-size:11px;">●未读</span>' : ''}</span>
+          <span class="alert-time">${a.datetime} ${readBtn}</span>
+        </div>
+        ${detailHtml}
+      </div>`;
+    }).join('');
+  } catch(e) { console.error(e); }
+}
+
+// ==================== 自动刷新 ====================
+let lastScanTimestamp = 0;
+let autoRefreshTimer = null;
+
+async function checkNewScan() {
+  // 检查是否有新的扫描记录，有则自动刷新
+  try {
+    const resp = await fetch('/api/monitor/history?limit=1');
+    const history = await resp.json();
+    if (history.length > 0) {
+      const latestTime = history[0].timestamp;
+      if (lastScanTimestamp === 0) {
+        lastScanTimestamp = latestTime;
+      } else if (latestTime > lastScanTimestamp) {
+        lastScanTimestamp = latestTime;
+        console.log('[自动刷新] 检测到新扫描记录，刷新页面数据');
+        loadVideoHistory();
+        loadHotVideos();
+        loadAlerts();
+        loadDashboard();
+      }
+    }
+  } catch(e) { console.error('自动刷新检查失败:', e); }
+}
+
+function startAutoRefresh() {
+  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+  // 每30秒检查一次是否有新扫描
+  autoRefreshTimer = setInterval(checkNewScan, 30000);
+  console.log('[自动刷新] 已启动，每30秒检查一次');
+}
+
+// ==================== 自动保存 ====================
+let autoSaveTimer = null;
+let isSaving = false;
+
+function scheduleAutoSave() {
+  // 防抖：2秒无操作后自动保存
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  showSaveStatus('修改中...');
+  autoSaveTimer = setTimeout(() => {
+    saveConfigSilent();
+  }, 2000);
+}
+
+async function saveMonitorConfig() {
+  const config = collectMonitorConfig();
+  try {
+    const resp = await fetch('/api/monitor/config', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config)
+    });
+    const data = await resp.json();
+    if (data.success) {
+      showSaveStatus('✓ 配置已保存');
+      setTimeout(() => showSaveStatus(''), 2000);
+    } else {
+      alert('保存失败: ' + (data.detail || ''));
+    }
+  } catch(e) { alert('保存失败: ' + e.message); }
+}
+
+async function saveConfigSilent() {
+  if (isSaving) return;
+  isSaving = true;
+  showSaveStatus('保存中...');
+  try {
+    const config = collectMonitorConfig();
+    await fetch('/api/monitor/config', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config)
+    });
+    showSaveStatus('✓ 已自动保存');
+    setTimeout(() => showSaveStatus(''), 2000);
+    // 保存后自动更新监控状态显示，不用手动刷新
+    if (typeof updateMonitorStatus === 'function') {
+      updateMonitorStatus();
+    }
+  } catch(e) {
+    showSaveStatus('✗ 保存失败');
+  } finally {
+    isSaving = false;
+  }
+}
+
+function showSaveStatus(text) {
+  let el = document.getElementById('autoSaveStatus');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'autoSaveStatus';
+    el.style.cssText = 'position:fixed;bottom:20px;right:20px;padding:8px 16px;background:#1d1d1f;color:#fff;border-radius:8px;font-size:13px;z-index:9999;opacity:0;transition:opacity 0.3s;';
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  el.style.opacity = text ? '0.9' : '0';
+}
+
+function bindAutoSave() {
+  // 给所有配置输入框绑定自动保存
+  const configPanel = document.getElementById('configSection');
+  if (!configPanel) return;
+  const inputs = configPanel.querySelectorAll('input, textarea, select');
+  inputs.forEach(el => {
+    if (el.type === 'checkbox' || el.type === 'radio') {
+      el.addEventListener('change', scheduleAutoSave);
+    } else {
+      el.addEventListener('input', scheduleAutoSave);
+    }
+  });
+}
+
+// ==================== 初始化 ====================
+window.addEventListener('load', () => {
+  checkLogin();
+  loadMonitorConfig();
+  loadDashboard();
+  startAutoRefresh();
+  setTimeout(bindAutoSave, 500);
+});
+
+// 窗口大小变化时重绘图表
+window.addEventListener('resize', () => {
+  if (trendChart) trendChart.resize();
+});
+
+// ===== 暗色模式 =====
+function toggleTheme() {
+  document.body.classList.toggle('dark');
+  const isDark = document.body.classList.contains('dark');
+  document.getElementById('themeToggle').textContent = isDark ? '☀️ 浅色' : '🌙 暗色';
+  localStorage.setItem('theme', isDark ? 'dark' : 'light');
+  if (trendChart) {
+    trendChart.setOption({
+      textStyle: { color: isDark ? '#e6edf3' : '#1d1d1f' },
+      legend: { textStyle: { color: isDark ? '#8b949e' : '#86868b' } },
+      xAxis: { axisLine: { lineStyle: { color: isDark ? '#30363d' : '#e5e5e7' } }, axisLabel: { color: isDark ? '#8b949e' : '#86868b' } },
+      yAxis: { axisLine: { lineStyle: { color: isDark ? '#30363d' : '#e5e5e7' } }, axisLabel: { color: isDark ? '#8b949e' : '#86868b' }, splitLine: { lineStyle: { color: isDark ? '#21262d' : '#f0f0f0' } } }
+    });
+  }
+}
+// 初始化主题
+if (localStorage.getItem('theme') === 'dark') {
+  document.body.classList.add('dark');
+  document.getElementById('themeToggle').textContent = '☀️ 浅色';
+}
+
+// ===== 扫描详情弹窗 =====
+function showScanDetail(record) {
+  const modal = document.getElementById('detailModal');
+  document.getElementById('detailModalTitle').textContent = `${record.nickname} - ${record.datetime}`;
+  let html = `<div style="margin-bottom:16px; display:grid; grid-template-columns:repeat(3,1fr); gap:12px;">
+    <div><div style="color:#86868b;font-size:12px;">视频数</div><div style="font-size:20px;font-weight:600;">${record.video_count}</div></div>
+    <div><div style="color:#86868b;font-size:12px;">总点赞</div><div style="font-size:20px;font-weight:600;color:#ff2d55;">${record.total_likes}</div></div>
+    <div><div style="color:#86868b;font-size:12px;">平均点赞</div><div style="font-size:20px;font-weight:600;">${record.video_count > 0 ? Math.round(record.total_likes / record.video_count) : 0}</div></div>
+  </div>`;
+  html += '<div style="font-weight:600;margin-bottom:8px;">视频明细</div>';
+  if (record.videos && record.videos.length > 0) {
+    html += '<div style="overflow-x:auto;"><table class="data-table"><thead><tr>' +
+      '<th style="width:40px;">#</th>' +
+      '<th>视频标题</th>' +
+      '<th style="width:100px;text-align:right;">当前点赞</th>' +
+      '<th style="width:100px;text-align:right;">上次点赞</th>' +
+      '<th style="width:100px;text-align:right;">相邻增量</th>' +
+      '<th style="width:70px;text-align:center;">类型</th>' +
+      '</tr></thead><tbody>';
+    record.videos.forEach((v, i) => {
+      const delta = v.delta_from_last !== undefined ? v.delta_from_last : '-';
+      const lastLikes = v.last_likes !== undefined ? v.last_likes : '-';
+      const deltaClass = delta > 0 ? 'color: #ff2d55; font-weight:600;' : (delta < 0 ? 'color: #34c759;' : '');
+      const deltaText = delta > 0 ? `+${delta}` : delta;
+      html += `<tr>
+        <td style="text-align:center;color:#86868b;">${i+1}</td>
+        <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${v.title || ''}">${v.title || '(无标题)'}</td>
+        <td style="text-align:right;font-weight:600;">${v.digg_count}</td>
+        <td style="text-align:right;color:#86868b;">${lastLikes}</td>
+        <td style="text-align:right;${deltaClass}">${deltaText}</td>
+        <td style="text-align:center;font-size:12px;color:#86868b;">${v.type === 'note' ? '图文' : '视频'}</td>
+      </tr>`;
+    });
+    html += '</tbody></table></div>';
+  } else {
+    html += '<div class="empty-state">无视频数据</div>';
+  }
+  document.getElementById('detailModalBody').innerHTML = html;
+  modal.classList.add('show');
+}
+function closeDetailModal() {
+  document.getElementById('detailModal').classList.remove('show');
+}
+
+// ===== 数据导出 =====
+function exportHistory() {
+  const secUid = document.getElementById('historyFilter').value || '';
+  const url = '/api/monitor/export' + (secUid ? '?sec_uid=' + encodeURIComponent(secUid) : '');
+  window.open(url, '_blank');
+}
+
+// ===== 告警已读 =====
+async function markAlertRead(alertId, btn) {
+  await fetch(`/api/monitor/alerts/${alertId}/read`, { method: 'POST' });
+  loadAlerts();
+  loadDashboard();
+}
+async function markAllAlertsRead() {
+  await fetch('/api/monitor/alerts/read-all', { method: 'POST' });
+  loadAlerts();
+  loadDashboard();
+}
+
+// ===== 扫描进度轮询 =====
+let progressPollTimer = null;
+function startProgressPolling() {
+  if (progressPollTimer) clearInterval(progressPollTimer);
+  progressPollTimer = setInterval(async () => {
+    try {
+      const resp = await fetch('/api/monitor/scan-progress');
+      const progress = await resp.json();
+      if (progress && progress.current && progress.total) {
+        const pct = Math.round((progress.current / progress.total) * 100);
+        document.getElementById('scanProgressCount').textContent = `${progress.current}/${progress.total}`;
+        document.getElementById('scanProgressFill').style.width = pct + '%';
+        const nickname = progress.current_nickname || '扫描中';
+        const successCount = (progress.results || []).length;
+        const errorCount = (progress.errors || []).length;
+        document.getElementById('scanProgressDetail').textContent =
+          `当前：${nickname} | 已完成 ${successCount} 个${errorCount > 0 ? `，失败 ${errorCount} 个` : ''}`;
+      }
+    } catch(e) {}
+  }, 2000);
+}
+function stopProgressPolling() {
+  if (progressPollTimer) { clearInterval(progressPollTimer); progressPollTimer = null; }
+}
+
+// ===== 账号备注 =====
+async function saveAccountNote(secUid, note) {
+  await fetch('/api/monitor/account-notes', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sec_uid: secUid, note: note })
+  });
+}
+
+// ===== 评论管理 =====
+let currentCommentFilter = 'all';
+
+async function loadComments() {
+  try {
+    const resp = await fetch(`/api/comments?status=${currentCommentFilter}`);
+    const comments = await resp.json();
+
+    const el = document.getElementById('commentsList');
+    if (!comments.length) {
+      el.innerHTML = '<div class="empty-state"><div class="icon">💬</div><div class="text">暂无评论关键词命中</div></div>';
+      return;
+    }
+
+    el.innerHTML = comments.map(c => `
+      <div class="comment-card ${c.replied ? 'replied' : 'pending'}" style="padding:16px;border:1px solid #e5e5e7;border-radius:8px;margin-bottom:12px;${c.replied ? 'opacity:0.7;' : ''}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+          <div>
+            <span style="font-weight:600;font-size:14px;">${c.nickname || '未知账号'}</span>
+            <span style="font-size:12px;color:#86868b;margin-left:12px;">${c.datetime}</span>
+            <span class="badge badge-warning" style="margin-left:8px;">${c.matched_keyword}</span>
+            ${c.replied ? '<span class="badge badge-success" style="margin-left:8px;">✓ 已回复</span>' : '<span class="badge" style="margin-left:8px;background:#fff3e0;color:#ff9500;">待回复</span>'}
+          </div>
+        </div>
+        <div style="font-size:13px;color:#86868b;margin-bottom:8px;">📹 视频：《${c.video_title || '无标题'}》</div>
+        <div style="background:#f5f5f7;padding:10px 12px;border-radius:6px;margin-bottom:12px;">
+          <div style="font-size:13px;"><b>${c.comment_author || '匿名'}</b>：${c.comment_text}</div>
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="font-size:12px;color:#86868b;margin-bottom:4px;">拟回复：</div>
+          <textarea class="form-textarea" id="reply-${c.id}" rows="2" style="width:100%;font-size:13px;">${c.suggested_reply}</textarea>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-primary btn-sm" onclick="copyReply(${c.id})">📋 复制拟回复</button>
+          <button class="btn btn-secondary btn-sm" onclick="saveReplyText(${c.id})">💾 保存修改</button>
+          ${c.replied
+            ? `<button class="btn btn-secondary btn-sm" onclick="unmarkReply(${c.id})">↩️ 标记未回复</button>`
+            : `<button class="btn btn-secondary btn-sm" style="background:#34c759;color:#fff;border-color:#34c759;" onclick="markReply(${c.id})">✓ 标记已回复</button>`
+          }
+        </div>
+      </div>
+    `).join('');
+  } catch(e) { console.error(e); }
+}
+
+function filterComments(status, btn) {
+  currentCommentFilter = status;
+  document.querySelectorAll('.comment-filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadComments();
+}
+
+async function copyReply(id) {
+  const text = document.getElementById(`reply-${id}`).value;
+  try {
+    await navigator.clipboard.writeText(text);
+    alert('拟回复已复制到剪贴板！');
+  } catch(e) {
+    // 降级方案
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    alert('拟回复已复制到剪贴板！');
+  }
+}
+
+async function saveReplyText(id) {
+  const text = document.getElementById(`reply-${id}`).value;
+  await fetch(`/api/comments/${id}/reply-text`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reply_text: text })
+  });
+  alert('拟回复已保存！');
+}
+
+async function markReply(id) {
+  const text = document.getElementById(`reply-${id}`).value;
+  await fetch(`/api/comments/${id}/reply`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ custom_reply: text })
+  });
+  loadComments();
+}
+
+async function unmarkReply(id) {
+  await fetch(`/api/comments/${id}/unreply`, { method: 'POST' });
+  loadComments();
+}
+</script>
+
+<!-- 扫描详情弹窗 -->
+<div class="modal-overlay" id="detailModal" onclick="if(event.target===this)closeDetailModal()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title" id="detailModalTitle">扫描详情</div>
+      <button class="modal-close" onclick="closeDetailModal()">&times;</button>
+    </div>
+    <div id="detailModalBody"></div>
+  </div>
+</div>
+
+</body>
+</html>
