@@ -4,6 +4,8 @@
 
 基于 **Playwright + FastAPI + APScheduler + SQLite** 的抖音多账号数据监控系统。登录态持久化，定时采集粉丝 / 获赞 / 视频数据，点赞增量超阈值自动告警，飞书表格自动同步。
 
+![架构总览](assets/architecture.svg)
+
 ## 功能特性
 
 ### 核心监控

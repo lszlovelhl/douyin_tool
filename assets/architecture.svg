@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 620" font-family="PingFang SC, Microsoft YaHei, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#8a8f98"/>
+    </marker>
+  </defs>
+
+  <!-- 标题 -->
+  <text x="440" y="36" text-anchor="middle" font-size="20" font-weight="bold" fill="#24292f">抖音数据监控工具 · 架构总览</text>
+
+  <!-- 顶部：前端 -->
+  <rect x="240" y="60" width="400" height="66" rx="10" fill="#eef2ff" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="440" y="86" text-anchor="middle" font-size="15" font-weight="bold" fill="#4338ca">Web 仪表盘</text>
+  <text x="440" y="108" text-anchor="middle" font-size="12" fill="#5b6472">概览卡片 · 增量排行 · ECharts 趋势 · 评论管理 · 暗色模式 · CSV 导出</text>
+
+  <!-- 前端 → 后端 箭头 -->
+  <line x1="440" y1="126" x2="440" y2="156" stroke="#8a8f98" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="448" y="146" font-size="11" fill="#8a8f98">HTTP /api/*</text>
+
+  <!-- 后端核心 -->
+  <rect x="190" y="158" width="500" height="66" rx="10" fill="#e0f2fe" stroke="#0ea5e9" stroke-width="1.5"/>
+  <text x="440" y="184" text-anchor="middle" font-size="15" font-weight="bold" fill="#0369a1">FastAPI 后端（app.py）</text>
+  <text x="440" y="206" text-anchor="middle" font-size="12" fill="#5b6472">API 路由 · APScheduler 定时调度 · 启动自检 selfcheck.py</text>
+
+  <!-- 后端 → 爬虫 -->
+  <line x1="260" y1="224" x2="260" y2="256" stroke="#8a8f98" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="110" y="258" width="300" height="88" rx="10" fill="#dcfce7" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="260" y="282" text-anchor="middle" font-size="14" font-weight="bold" fill="#15803d">Playwright 爬虫层</text>
+  <text x="260" y="304" text-anchor="middle" font-size="12" fill="#5b6472">多账号并行（线程池 ≤ 3 防风控）</text>
+  <text x="260" y="324" text-anchor="middle" font-size="12" fill="#5b6472">登录态 cookies 持久化 · 自动重试</text>
+  <text x="260" y="344" text-anchor="middle" font-size="11" fill="#8a8f98">不依赖 a_bogus 签名</text>
+
+  <!-- 后端 → 存储 -->
+  <line x1="440" y1="224" x2="440" y2="256" stroke="#8a8f98" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="340" y="258" width="200" height="88" rx="10" fill="#fef3c7" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="440" y="282" text-anchor="middle" font-size="14" font-weight="bold" fill="#b45309">SQLite 持久化</text>
+  <text x="440" y="304" text-anchor="middle" font-size="12" fill="#5b6472">WAL 并发安全 · scan_history / alerts</text>
+  <text x="440" y="324" text-anchor="middle" font-size="12" fill="#5b6472">旧 JSON 自动迁移 · 带索引</text>
+
+  <!-- 后端 → 飞书 -->
+  <line x1="620" y1="224" x2="620" y2="256" stroke="#8a8f98" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="520" y="258" width="250" height="88" rx="10" fill="#fce7f3" stroke="#ec4899" stroke-width="1.5"/>
+  <text x="645" y="282" text-anchor="middle" font-size="14" font-weight="bold" fill="#be185d">飞书集成</text>
+  <text x="645" y="304" text-anchor="middle" font-size="12" fill="#5b6472">表格 upsert（video_id → 行号映射）</text>
+  <text x="645" y="324" text-anchor="middle" font-size="12" fill="#5b6472">脏数据 ID 正则过滤 · Token 自动刷新</text>
+  <text x="645" y="344" text-anchor="middle" font-size="12" fill="#5b6472">机器人 webhook 告警推送</text>
+
+  <!-- 底部：监控循环 -->
+  <rect x="140" y="380" width="600" height="70" rx="10" fill="#f1f5f9" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 3"/>
+  <text x="440" y="404" text-anchor="middle" font-size="14" font-weight="bold" fill="#475569">监控闭环</text>
+  <text x="440" y="426" text-anchor="middle" font-size="12" fill="#5b6472">定时/间隔触发 → 并行采集 → 增量计算 → 超阈值告警 → 飞书表格同步 → 仪表盘展示</text>
+
+  <!-- 底部：工程化 -->
+  <rect x="180" y="480" width="520" height="76" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+  <text x="440" y="504" text-anchor="middle" font-size="14" font-weight="bold" fill="#475569">工程化</text>
+  <text x="440" y="528" text-anchor="middle" font-size="12" fill="#5b6472">Docker / docker-compose · GitHub Actions CI · 38 项单元测试 · 启动自检</text>
+  <text x="440" y="548" text-anchor="middle" font-size="11" fill="#8a8f98">数据目录 data/ 与 cookies/ 数据卷持久化，密钥环境变量化不入库</text>
+</svg>
